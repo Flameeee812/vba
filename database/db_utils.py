@@ -1,5 +1,6 @@
-import logger
 import re
+import datetime
+import logger
 
 
 def add_initials(connection, initials: str):
@@ -50,14 +51,17 @@ def delete_initials(connection, initials: str):
 
 def update_readings(connection, initials: str, electricity: str, cold_water: str, hot_water: str, gas: str):
     cursor = connection.cursor()
-
-    if not re.match(r"^[A-Za-zА-Яа-яЁё\s]+$", initials):
-        logger.app_logger.error(f"Введён неверный тип данных: {initials}")
-        return 0
+    day = datetime.datetime.now().day
+    month = datetime.datetime.now().month
+    year = datetime.datetime.now().year
 
     cursor.execute("SELECT COUNT(*) FROM Taxpayers WHERE initials = ?", (initials,))
     if cursor.fetchone()[0] == 0:
         logger.app_logger.warning(f"Пользователь {initials} не найден в базе данных.")
+        return 0
+
+    if not re.match(r"^[A-Za-zА-Яа-яЁё\s]+$", initials):
+        logger.app_logger.error(f"Введён неверный тип данных: {initials}")
         return 0
 
     try:
@@ -66,14 +70,20 @@ def update_readings(connection, initials: str, electricity: str, cold_water: str
 
         electricity, cold_water, hot_water, gas = map(int, [electricity, cold_water, hot_water, gas])
         debt = round(electricity * 5.09 + cold_water * 29.41 + hot_water * 226.7 + gas * 7.47, 2)
-        cursor.execute(
-            """
+        cursor.execute("SELECT debt, month, year FROM Taxpayers WHERE initials = ?",
+                       (initials,))
+        result = cursor.fetchone()
+        current_debt, last_calculated_month, last_calculated_year = result
+
+        if (day >= 15) or (month > last_calculated_month) or (year > last_calculated_year):
+            debt += current_debt
+
+        cursor.execute("""
             UPDATE Taxpayers 
-            SET electricity = ?, cold_water = ?, hot_water = ?, gas = ?, debt = ?
+            SET electricity = ?, cold_water = ?, hot_water = ?, gas = ?, debt = ?, month = ?, year = ?
             WHERE initials = ?
-            """,
-            (electricity, cold_water, hot_water, gas, debt, initials)
-        )
+        """, (electricity, cold_water, hot_water, gas, debt, month, year, initials))
+
         connection.commit()
         logger.app_logger.info(f"Показания для пользователя {initials} успешно обновлены.")
         return 1
