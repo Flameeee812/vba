@@ -61,6 +61,9 @@ def update_readings(connection, initials: str, electricity: str, cold_water: str
         return 0
 
     try:
+        if not gas:
+            gas = 0
+
         electricity, cold_water, hot_water, gas = map(int, [electricity, cold_water, hot_water, gas])
         debt = round(electricity * 5.09 + cold_water * 29.41 + hot_water * 226.7 + gas * 7.47, 2)
         cursor.execute(
@@ -92,8 +95,8 @@ def get_readings(connection, initials: str):
                        (initials,))
         readings = cursor.fetchone()
 
-        if readings:
-            logger.app_logger.info(f"Получены данные для пользователя: {initials}")
+        if all([isinstance(num, int) for num in readings]):
+            logger.app_logger.info(f"Получены данные о показаниях для пользователя: {initials}")
             return readings
 
         logger.app_logger.warning(f"Данные для пользователя {initials} отсутствуют в базе.")
@@ -109,22 +112,23 @@ def update_debt(connection, initials: str, new_payment):
     if not re.match(r"^[A-Za-zА-Яа-яЁё\s]+$", initials):
         logger.app_logger.error(f"Введён неверный тип данных: {initials}")
         return 0
-    else:
-        cursor.execute("""SELECT debt FROM Taxpayers WHERE initials == ?""",
-                       (initials, ))
-        debt = cursor.fetchone()
-        if debt:
-            debt = debt[0]
-            try:
-                new_debt = debt - float(new_payment)
 
-                cursor.execute("""UPDATE Taxpayers SET payment = ?, debt = ? WHERE initials = ?""",
-                               (new_payment, new_debt, initials))
-                connection.commit()
-                return 1
-            except ValueError as VE:
-                logger.app_logger.exception(f"Введён неверный тип данных: {VE}")
-                return 0
+    cursor.execute("""SELECT debt FROM Taxpayers WHERE initials == ?""",
+                   (initials, ))
+    debt = cursor.fetchone()
+    if debt:
+        debt = debt[0]
+        try:
+            new_debt = debt - float(new_payment)
+
+            cursor.execute("""UPDATE Taxpayers SET last_payment = ?, debt = ? WHERE initials = ?""",
+                           (new_payment, new_debt, initials))
+            connection.commit()
+            logger.app_logger.info(f"Значение debt для {initials} обновлены")
+            return 1
+        except ValueError as VE:
+            logger.app_logger.exception(f"Введён неверный тип данных: {VE}")
+            return 0
 
 
 def get_debt(connection, initials):
@@ -133,8 +137,9 @@ def get_debt(connection, initials):
     if not re.match(r"^[A-Za-zА-Яа-яЁё\s]+$", initials):
         logger.app_logger.error(f"Введён неверный тип данных: {initials}")
         return 0
-    else:
-        cursor.execute("""Select debt FROM Taxpayers WHERE initials == ?""",
-                       (initials, ))
-        debt = cursor.fetchone()
-        return debt[0] if debt else None
+
+    cursor.execute("""Select debt FROM Taxpayers WHERE initials == ?""",
+                   (initials, ))
+    debt = cursor.fetchone()
+    logger.app_logger.info(f"Получены данные об остатке долга для: {initials}")
+    return debt[0] if debt else None
