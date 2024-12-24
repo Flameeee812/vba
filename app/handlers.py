@@ -5,10 +5,13 @@ connection = db.get_connection()
 
 
 def home_handler():
+    """Хендлер для домашней страницы"""
+    
     return fl.render_template("home.html")
 
 
 def registration():
+    """Хендлер для страницы регистрации"""
 
     if fl.request.method == "POST":
         initials = fl.request.form.get("initials")
@@ -23,6 +26,7 @@ def registration():
 
 
 def delete_user_initials():
+    """Хендлер для страницы удаления пользователя"""
 
     if fl.request.method == "POST":
         initials = fl.request.form.get("initials")
@@ -37,6 +41,7 @@ def delete_user_initials():
 
 
 def update_user_readings():
+    """Хендлер для страницы обновления показаний счётчиков"""
 
     if fl.request.method == "POST":
         initials = fl.request.form.get("initials")
@@ -55,6 +60,8 @@ def update_user_readings():
 
 
 def get_user_readings():
+    """Хендлер для страницы получения информации о показаниях счётчиков"""
+
     if fl.request.method == "POST":
         initials = fl.request.form.get("initials")
 
@@ -73,6 +80,8 @@ def get_user_readings():
 
 
 def update_user_debt():
+    """Хендлер для страницы оплаты задолжности"""
+
     if fl.request.method == "POST":
         initials = fl.request.form.get("initials")
         new_payment = fl.request.form.get("new_payment")
@@ -87,6 +96,8 @@ def update_user_debt():
 
 
 def get_user_debt():
+    """Хендлер для страницы получния информации о задолжности"""
+
     if fl.request.method == "POST":
         initials = fl.request.form.get("initials")
 
