@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Узнать показания</title>
+</head>
+<body>
+    <h1>Данные показания счётчиков</h1>
+        <form action="{{ url_for('vba.get_readings') }}" method="post">
+            <label for="initials">Для того, чтобы узнать показания ваших счётчиков введите ваши ФИО <strong>(полностью)</strong></label>
+            <input type="text" id="initials" placeholder="ФИО" name="initials">
+            <input type="submit" value="submit">
+        </form>
+</body>
+</html>
