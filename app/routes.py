@@ -23,3 +23,18 @@ def delete_user():
 def update_readings():
     return update_user_readings()
 
+
+@vba.route("/get_readings", methods=["POST", "GET"])
+def get_readings():
+    return get_user_readings()
+
+
+@vba.route("/update_debt", methods=["POST", "GET"])
+def update_debt():
+    return update_user_debt()
+
+
+@vba.route("/get_debt", methods=["POST", "GET"])
+def get_debt():
+    return get_user_debt()
+
