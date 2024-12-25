@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>Удаление персональных данных</h1>
+        <form action="{{ url_for('vba.delete_user') }}" method="post">
+            <label for="passport">Для удаления из базы данных введите паспортные данные</label>
+            <input type="text" id="passport" placeholder="passport" name="passport">
+            <input type="submit" value="submit">
+        </form>
+    <p>Вернуться на домашнюю страницу: <a href="http://127.0.0.1:5005/vba">Домашняя страница</a></p>
+</body>
+</html>
