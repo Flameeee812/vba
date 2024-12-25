@@ -258,7 +258,7 @@ def get_debt(connection, passport):
         return 0
 
 
-def close(connection):
+def close_conn(connection):
     """Функция для закрытия базы данных
 
     Параметры:
@@ -266,3 +266,4 @@ def close(connection):
     """
 
     connection.close()
+    logger.app_logger.info("База данных закрыта")
