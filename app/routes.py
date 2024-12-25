@@ -16,7 +16,7 @@ def reg_user():
 
 @vba.route("/delete_user", methods=["POST", "GET"])
 def delete_user():
-    return delete_user_initials()
+    return delete_user_passport()
 
 
 @vba.route("/update_readings", methods=["POST", "GET"])
@@ -37,4 +37,3 @@ def update_debt():
 @vba.route("/get_debt", methods=["POST", "GET"])
 def get_debt():
     return get_user_debt()
-
