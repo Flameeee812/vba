@@ -1,6 +1,47 @@
 import re
-import datetime
+import sqlite3 as sql
 import logger
+from .config import DATABASE
+
+
+def get_connection():
+    """Функция для получения базы данных"""
+
+    connection = sql.connect(DATABASE, check_same_thread=False)
+    cursor = connection.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Taxpayers (
+        id INTEGER PRIMARY KEY,
+        initials TEXT NOT NULL,
+        electricity INTEGER,
+        cold_water INTEGER,
+        hot_water INTEGER,
+        gas INTEGER,
+        debt REAL DEFAULT 0.0,
+        last_payment REAL DEFAULT 0.0,
+        last_month_debt REAL DEFAULT 0,0
+        )
+        ''')
+    connection.commit()
+    return connection
+
+
+def update_debts(connection):
+    """Функция, добавляющая задолжность за предыдущий месяц к новой
+
+    Параметры:
+    1. connection - подключение к базе данных
+    """
+    try:
+        cursor = connection.cursor()
+
+        cursor.execute("UPDATE Taxpayers SET debt = debt + last_month_debt")  # Пример обновления
+        connection.commit()
+        logger.app_logger.info("Столбец debt обновлён")
+
+    except Exception as e:
+        logger.app_logger.exception(f"Ошибка при обновлении долга: {e}")
 
 
 def add_initials(connection, initials: str):
@@ -15,7 +56,7 @@ def add_initials(connection, initials: str):
 
     # Ошибка, если количество слов в инициалах заданы некорректно
     if len(initials.split()) < 2 or len(initials.split()) > 3:
-        logger.app_logger.error(f"Ненврное заполнение инициалов: {initials}")
+        logger.app_logger.error(f"Неверное заполнение инициалов: {initials}")
         return 0
 
     # Ошибка, если инициалы пользователя представлеы не в буквенном виде
@@ -78,9 +119,6 @@ def update_readings(connection, initials: str, electricity: str, cold_water: str
         """
 
     cursor = connection.cursor()
-    day = datetime.datetime.now().day  # день подачи показаний
-    month = datetime.datetime.now().month  # месяц подачи показаний
-    year = datetime.datetime.now().year  # год подачи показаний
 
     cursor.execute("SELECT COUNT(*) FROM Taxpayers WHERE initials = ?", (initials,))
     if cursor.fetchone()[0] == 0:
@@ -95,23 +133,19 @@ def update_readings(connection, initials: str, electricity: str, cold_water: str
         if not gas:  # Если в форму не добавили значение показания газа
             gas = 0
 
+        cursor.execute("SELECT debt FROM Taxpayers WHERE initials = ?",
+                       (initials,))
+        last_month_debt = cursor.fetchone()[0]
+
         electricity, cold_water, hot_water, gas = map(int, [electricity, cold_water, hot_water, gas])
         # Подсчёт долга по актуальному Казансому тарифу
-        debt = round(electricity * 5.09 + cold_water * 29.41 + hot_water * 226.7 + gas * 7.47, 2)
-        cursor.execute("SELECT debt, month, year FROM Taxpayers WHERE initials = ?",
-                       (initials,))
-        result = cursor.fetchone()
-        current_debt, last_calculated_month, last_calculated_year = result
-
-        # Обновление оплаты после 15 числа нового/нынешнего месяца
-        if (day >= 15) or (month > last_calculated_month) or (year > last_calculated_year):
-            debt += current_debt
+        debt = round(electricity * 5.09 + cold_water * 29.41 + hot_water * 226.7 + gas * 7.47, 2) + last_month_debt
 
         cursor.execute("""
             UPDATE Taxpayers 
-            SET electricity = ?, cold_water = ?, hot_water = ?, gas = ?, debt = ?, month = ?, year = ?
+            SET electricity = ?, cold_water = ?, hot_water = ?, gas = ?, debt = ?, last_month_debt = ?
             WHERE initials = ?
-        """, (electricity, cold_water, hot_water, gas, debt, month, year, initials))
+        """, (electricity, cold_water, hot_water, gas, debt, 0, initials))
 
         connection.commit()
         logger.app_logger.info(f"Показания для пользователя {initials} успешно обновлены.")
@@ -160,7 +194,7 @@ def update_debt(connection, initials: str, new_payment):
         2. initials - инициалы пользователя
         3. new_payment - сумма оплаты задолжности
         """
-    
+
     cursor = connection.cursor()
 
     if not re.match(r"^[A-Za-zА-Яа-яЁё\s]+$", initials):
@@ -192,7 +226,7 @@ def get_debt(connection, initials):
         1. connection - подключение к базе данных
         2. initials - инициалы пользователя
         """
-    
+
     cursor = connection.cursor()
 
     if not re.match(r"^[A-Za-zА-Яа-яЁё\s]+$", initials):
@@ -204,3 +238,13 @@ def get_debt(connection, initials):
     debt = cursor.fetchone()
     logger.app_logger.info(f"Получены данные об остатке долга для: {initials}")
     return debt[0] if debt else None
+
+
+def close(connection):
+    """Функция для закрытия базы данных
+
+    Параметры:
+    1. connection - подключение к базе данных
+    """
+
+    connection.close()
