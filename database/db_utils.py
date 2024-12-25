@@ -59,7 +59,7 @@ def add_passport(connection, passport: str):
         return 0
 
     # Ошибка, если паспортные данные пользователя представлеы не в числовом виде
-    if all(map(str.isdigit, passport.split())) is False:
+    if all(char.isdigit() for char in passport.split()) is False:
         logger.app_logger.error(f"Введён неверный тип данных: {passport}")
         return 0
 
@@ -87,7 +87,7 @@ def delete_passport(connection, passport: str):
 
     cursor = connection.cursor()
 
-    if all(map(str.isdigit, passport.split())) is False:
+    if all(char.isdigit() for char in passport.split()) is False:
         logger.app_logger.error(f"Введён неверный тип данных: {passport}")
         return 0
 
@@ -127,7 +127,7 @@ def update_readings(connection, passport: str, electricity: str, cold_water: str
         logger.app_logger.warning(f"Пользователь {passport} не найден в базе данных.")
         return 0
 
-    if all(map(str.isdigit, passport.split())) is False:
+    if all(char.isdigit() for char in passport.split()) is False:
         logger.app_logger.error(f"Введён неверный тип данных: {passport}")
         return 0
 
@@ -170,7 +170,7 @@ def get_readings(connection, passport: str):
 
     cursor = connection.cursor()
 
-    if all(map(str.isdigit, passport.split())) is False:
+    if all(char.isdigit() for char in passport.split()) is False:
         logger.app_logger.error(f"Введён неверный тип данных: {passport}")
         return 0
 
@@ -201,7 +201,7 @@ def update_debt(connection, passport: str, new_payment):
 
     cursor = connection.cursor()
 
-    if all(map(str.isdigit, passport.split())) is False:
+    if all(char.isdigit() for char in passport.split()) is False:
         logger.app_logger.error(f"Введён неверный тип данных: {passport}")
         return 0
 
@@ -237,7 +237,7 @@ def get_debt(connection, passport):
 
     cursor = connection.cursor()
 
-    if all(map(str.isdigit, passport.split())) is False:
+    if all(char.isdigit() for char in passport.split()) is False:
         logger.app_logger.error(f"Введён неверный тип данных: {passport}")
         return 0
 
