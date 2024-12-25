@@ -20,7 +20,7 @@ def get_connection():
         gas INTEGER,
         debt REAL DEFAULT 0.0,
         last_payment REAL DEFAULT 0.0,
-        last_month_debt REAL DEFAULT 0,0
+        last_month_debt REAL DEFAULT 0.0
         )
         ''')
     connection.commit()
@@ -36,7 +36,7 @@ def update_debts(connection):
     try:
         cursor = connection.cursor()
 
-        cursor.execute("UPDATE Taxpayers SET debt = debt + last_month_debt")  # Пример обновления
+        cursor.execute("UPDATE Taxpayers SET last_month_debt = debt, debt = 0")
         connection.commit()
         logger.app_logger.info("Столбец debt обновлён")
 
@@ -133,19 +133,21 @@ def update_readings(connection, initials: str, electricity: str, cold_water: str
         if not gas:  # Если в форму не добавили значение показания газа
             gas = 0
 
-        cursor.execute("SELECT debt FROM Taxpayers WHERE initials = ?",
+        cursor.execute("SELECT last_month_debt FROM Taxpayers WHERE initials = ?",
                        (initials,))
         last_month_debt = cursor.fetchone()[0]
 
         electricity, cold_water, hot_water, gas = map(int, [electricity, cold_water, hot_water, gas])
-        # Подсчёт долга по актуальному Казансому тарифу
-        debt = round(electricity * 5.09 + cold_water * 29.41 + hot_water * 226.7 + gas * 7.47, 2) + last_month_debt
+
+        # Подсчёт долга по актуальному Казансому тарифу с учётом долга за предыдущий месяц
+        actual_debt = (
+                round(electricity * 5.09 + cold_water * 29.41 + hot_water * 226.7 + gas * 7.47, 2) + last_month_debt)
 
         cursor.execute("""
             UPDATE Taxpayers 
             SET electricity = ?, cold_water = ?, hot_water = ?, gas = ?, debt = ?, last_month_debt = ?
             WHERE initials = ?
-        """, (electricity, cold_water, hot_water, gas, debt, 0, initials))
+        """, (electricity, cold_water, hot_water, gas, actual_debt, 0, initials))
 
         connection.commit()
         logger.app_logger.info(f"Показания для пользователя {initials} успешно обновлены.")
@@ -175,7 +177,7 @@ def get_readings(connection, initials: str):
                        (initials,))
         readings = cursor.fetchone()
 
-        if readings:
+        if all([isinstance(reading, int) for reading in readings]):
             logger.app_logger.info(f"Получены данные о показаниях для пользователя: {initials}")
             return readings
 
@@ -237,7 +239,7 @@ def get_debt(connection, initials):
                    (initials, ))
     debt = cursor.fetchone()
     logger.app_logger.info(f"Получены данные об остатке долга для: {initials}")
-    return debt[0] if debt else None
+    return debt[0] if isinstance(debt[0], int) else None
 
 
 def close(connection):
