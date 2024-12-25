@@ -1,5 +1,6 @@
 import flask as fl
-from .routes import vba, connection
+from . import scheduler
+from .routes import vba
 
 
 my_app = fl.Flask(__name__, template_folder="../templates")
