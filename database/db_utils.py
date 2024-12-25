@@ -23,6 +23,8 @@ def get_connection():
         )
         ''')
     connection.commit()
+
+    logger.app_logger.info("База данных запущена")
     return connection
 
 
