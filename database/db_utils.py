@@ -28,7 +28,7 @@ def get_connection():
     return connection
 
 
-def update_debts(connection):
+def reset_to_zero_debt(connection):
     """Функция, добавляющая задолжность за предыдущий месяц к новой
 
     Параметры:
@@ -39,7 +39,24 @@ def update_debts(connection):
 
         cursor.execute("UPDATE Taxpayers SET last_month_debt = debt, debt = 0")
         connection.commit()
-        logger.app_logger.info("Столбец debt обновлён")
+        logger.app_logger.info("Столбец debt обнулился")
+
+    except Exception as e:
+        logger.app_logger.exception(f"Ошибка при обновлении долга: {e}")
+
+
+def reset_to_zero_readings(connection):
+    """Функция, добавляющая задолжность за предыдущий месяц к новой
+
+    Параметры:
+    1. connection - подключение к базе данных
+    """
+    try:
+        cursor = connection.cursor()
+
+        cursor.execute("UPDATE Taxpayers SET electricity = 0, cold_water = 0, hot_water = 0, gas = 0")
+        connection.commit()
+        logger.app_logger.info("Столбцы с показаниями счётчиков обнулились")
 
     except Exception as e:
         logger.app_logger.exception(f"Ошибка при обновлении долга: {e}")
@@ -247,14 +264,22 @@ def get_debt(connection, passport):
         cursor.execute("SELECT COUNT(*) FROM Taxpayers WHERE passport = ?", (passport,))
         count = cursor.fetchone()[0]
         if count != 0:
-            cursor.execute("""Select debt FROM Taxpayers WHERE passport == ?""",
+            cursor.execute("""SELECT debt, last_month_debt FROM Taxpayers WHERE passport == ?""",
                            (passport, ))
             debt = cursor.fetchone()
-            logger.app_logger.info(f"Получены данные об остатке долга для: {passport}")
-            return debt[0]
+            if debt[0]:
+                logger.app_logger.info(f"Получены данные об остатке долга для: {passport}")
+                return debt[0]
+            elif debt[1]:
+                logger.app_logger.info(f"Получены данные об остатке долга для: {passport}")
+                return debt[1]
+            logger.app_logger.info(f"Информация о задолжности {passport} отсутствует")
+            return 0
 
-        logger.app_logger.warning(f"Информация о задолжности {passport} отсутствует")
+        logger.app_logger.info(f"""Не удалось получить информацию об 
+остатке долга, так как пользователь {passport} не зарегистрирован""")
         return 0
+
     except Exception as e:
         logger.app_logger.exception(f"Ошибка при попытке отобразить данные о задолжности: {e}")
         return 0
